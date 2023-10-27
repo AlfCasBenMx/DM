@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAMA DMBoK Quiz</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-color: #fff;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #eee;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #f0ad4e;
+            /* Bootstrap's warning (yellow) color */
+        }
+
+        #scoreDiv {
+            margin-top: 30px;
+        }
+
+        #result {
+            color: #f0ad4e;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>DAMA DMBoK Quiz</h1>
+        <hr>
+        <p><strong>AreaId:</strong> {{ AreaId }}, <strong>Area:</strong> {{ Area }}</p>
+        <div id="questionDiv">
+            <p>{{ question }}</p>
+            <form id="quizForm">
+                {% for option in options %}
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="option" value="{{ loop.index }}" required>
+                    <label class="form-check-label">{{ option }}</label>
+                </div>
+                {% endfor %}
+                <br>
+                <button type="submit" class="btn btn-warning">Submit</button>
+            </form>
+            <p id="result"></p>
+        </div>
+        <div id="scoreDiv">
+            <p><strong>Score:</strong> Correct: <span id="correctScore">{{ score['correct'] }}</span>, Incorrect: <span
+                    id="incorrectScore">{{ score['incorrect'] }}</span></p>
+            <button id="resetScore" class="btn btn-dark">Reset Score</button>
+        </div>
+    </div>
+
+    <script>
+        function loadNewQuestion() {
+            $.get("/new_question", function (data) {
+                $("#questionDiv p").text(data.question);
+                $("#quizForm").empty();
+                data.options.forEach(function (option, index) {
+                    $("#quizForm").append('<div class="form-check"><input class="form-check-input" type="radio" name="option" value="' + (index + 1) + '" required><label class="form-check-label">' + option + '</label></div>');
+                });
+                $("#quizForm").append('<br><button type="submit" class="btn btn-warning">Submit</button>');
+                $("#result").text("");
+            });
+        }
+
+        $(document).on('submit', '#quizForm', function(e) {
+    e.preventDefault();
+    $.post("/check_answer", $(this).serialize(), function(data) {
+        $("#result").text(data.result);
+        
+        if (data.result === "Incorrect!") {
+            $("#result").append(" The correct answer is: " + data.correct_answer);
+        }
+        
+        $("#correctScore").text(data.score.correct);
+        $("#incorrectScore").text(data.score.incorrect);
+
+        // Añadimos un timeout para dar tiempo al usuario a ver la respuesta correcta
+        setTimeout(function() {
+            var nextQuestion = confirm("Do you want to proceed to the next question?");
+            if (nextQuestion) {
+                loadNewQuestion();
+            }
+        }, 2000); // 2 segundos de espera, pero puedes ajustar este valor según lo que prefieras
+    });
+});
+
+
+
+        $(document).on('click', '#resetScore', function() {
+    $.get("/reset_score", { _ : new Date().getTime() }, function(data) {
+        $("#correctScore").text(data.correct);
+        $("#incorrectScore").text(data.incorrect);
+    });
+});
+
+
+    </script>
+</body>
+
+</html>
