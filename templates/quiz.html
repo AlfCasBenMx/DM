@@ -7,6 +7,7 @@
     <title>DAMA DMBoK Quiz</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             background-color: #fff;
@@ -23,8 +24,7 @@
         }
 
         h1 {
-            color: #f0ad4e;
-            /* Bootstrap's warning (yellow) color */
+            color: #f0ad4e; /* Bootstrap's warning (yellow) color */
         }
 
         #scoreDiv {
@@ -63,9 +63,14 @@
                     id="incorrectScore">{{ score['incorrect'] }}</span></p>
             <button id="resetScore" class="btn btn-dark">Reset Score</button>
         </div>
+        <div id="chartContainer" style="height: 400px; margin-top: 20px;">
+            <canvas id="scoreChart"></canvas>
+        </div>
     </div>
 
     <script>
+        var chart;
+
         function loadNewQuestion() {
             $.get("/new_question", function (data) {
                 $("#questionDiv p").text(data.question);
@@ -78,37 +83,60 @@
             });
         }
 
+        function updateChart(correct, incorrect) {
+            var total = correct + incorrect;
+            var correctPercentage = (correct / total) * 100;
+            var incorrectPercentage = (incorrect / total) * 100;
+
+            if (chart) {
+                chart.destroy(); // Destruye la gráfica anterior para crear una nueva
+            }
+
+            chart = new Chart(document.getElementById('scoreChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Correct', 'Incorrect'],
+                    datasets: [{
+                        label: 'Percentage',
+                        data: [correctPercentage, incorrectPercentage],
+                        backgroundColor: ['#f0ad4e', '#f0ad4e'], // Color amarillo para ambas barras
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100 // Porcentaje máximo
+                        }
+                    }
+                }
+            });
+        }
+
         $(document).on('submit', '#quizForm', function(e) {
     e.preventDefault();
     $.post("/check_answer", $(this).serialize(), function(data) {
-        $("#result").text(data.result);
-        
-        if (data.result === "Incorrect!") {
-            $("#result").append(" The correct answer is: " + data.correct_answer);
-        }
-        
-        $("#correctScore").text(data.score.correct);
-        $("#incorrectScore").text(data.score.incorrect);
-
-        // Añadimos un timeout para dar tiempo al usuario a ver la respuesta correcta
+        $("#result").text(data.result + " The correct answer is: " + data.correct_answer);
         setTimeout(function() {
             var nextQuestion = confirm("Do you want to proceed to the next question?");
             if (nextQuestion) {
                 loadNewQuestion();
             }
-        }, 2000); // 2 segundos de espera, pero puedes ajustar este valor según lo que prefieras
+        }, 500);
+        $("#correctScore").text(data.score.correct);
+        $("#incorrectScore").text(data.score.incorrect);
+        updateChart(data.score.correct, data.score.incorrect);
     });
 });
-
 
 
         $(document).on('click', '#resetScore', function() {
-    $.get("/reset_score", { _ : new Date().getTime() }, function(data) {
-        $("#correctScore").text(data.correct);
-        $("#incorrectScore").text(data.incorrect);
-    });
-});
-
+            $.get("/reset_score", { _ : new Date().getTime() }, function(data) {
+                $("#correctScore").text(data.correct);
+                $("#incorrectScore").text(data.incorrect);
+                updateChart(data.correct, data.incorrect);
+            });
+        });
 
     </script>
 </body>

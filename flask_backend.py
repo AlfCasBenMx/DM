@@ -66,8 +66,8 @@ def check_answer():
     
     session.modified = True
 
-    correct_answer_text = questions_df[questions_df['No.'] == question_id].iloc[0]['OPCIÓN' + str(correct_answer)]
-    return jsonify({'result': result, 'score': session['score'], 'correct_answer': correct_answer_text})
+    return jsonify({'result': result, 'score': session['score'], 'correct_answer': correct_answer})
+
 
 if __name__ == '__main__':
     app.run()
