@@ -42,8 +42,9 @@
 <body>
     <div class="container">
         <h1>DAMA DMBoK Quiz</h1>
+        <p>Total questions answered: <span id="totalAnswered">{{ score['correct'] + score['incorrect'] }}</span></p>
         <hr>
-        <p><strong>AreaId:</strong> {{ AreaId }}, <strong>Area:</strong> {{ Area }}</p>
+        <p><strong id="displayAreaId">AreaId:</strong> {{ AreaId }}, <strong id="displayArea">Area:</strong> {{ Area }}</p>
         <div id="questionDiv">
             <p>{{ question }}</p>
             <form id="quizForm">
@@ -53,6 +54,7 @@
                     <label class="form-check-label">{{ option }}</label>
                 </div>
                 {% endfor %}
+                <p><strong>Correct Answer:</strong> {{ correct_answer }}</p> <!-- Display the correct answer here -->
                 <br>
                 <button type="submit" class="btn btn-warning">Submit</button>
             </form>
@@ -80,13 +82,24 @@
                 });
                 $("#quizForm").append('<br><button type="submit" class="btn btn-warning">Submit</button>');
                 $("#result").text("");
+
+                // Actualizar AreaId y Area
+                $("#displayAreaId").text("AreaId: " + data.AreaId);
+                $("#displayArea").text("Area: " + data.Area);
             });
         }
 
-        function updateChart(correct, incorrect) {
-            var total = correct + incorrect;
-            var correctPercentage = (correct / total) * 100;
-            var incorrectPercentage = (incorrect / total) * 100;
+        function updateChart(scoresByArea) {
+            var labels = [];
+            var correctData = [];
+            var incorrectData = [];
+
+            // Crear datos para cada área
+            for (let area in scoresByArea) {
+                labels.push(area);
+                correctData.push(scoresByArea[area].correct);
+                incorrectData.push(scoresByArea[area].incorrect);
+            }
 
             if (chart) {
                 chart.destroy(); // Destruye la gráfica anterior para crear una nueva
@@ -95,18 +108,23 @@
             chart = new Chart(document.getElementById('scoreChart'), {
                 type: 'bar',
                 data: {
-                    labels: ['Correct', 'Incorrect'],
+                    labels: labels,
                     datasets: [{
-                        label: 'Percentage',
-                        data: [correctPercentage, incorrectPercentage],
-                        backgroundColor: ['#f0ad4e', '#f0ad4e'], // Color amarillo para ambas barras
-                    }]
+                            label: 'Correct',
+                            data: correctData,
+                            backgroundColor: '#4CAF50', // Color verde para respuestas correctas
+                        },
+                        {
+                            label: 'Incorrect',
+                            data: incorrectData,
+                            backgroundColor: '#f44336', // Color rojo para respuestas incorrectas
+                        }
+                    ]
                 },
                 options: {
                     scales: {
                         y: {
-                            beginAtZero: true,
-                            max: 100 // Porcentaje máximo
+                            beginAtZero: true
                         }
                     }
                 }
@@ -114,27 +132,33 @@
         }
 
         $(document).on('submit', '#quizForm', function(e) {
-    e.preventDefault();
-    $.post("/check_answer", $(this).serialize(), function(data) {
-        $("#result").text(data.result + " The correct answer is: " + data.correct_answer);
-        setTimeout(function() {
-            var nextQuestion = confirm("Do you want to proceed to the next question?");
-            if (nextQuestion) {
-                loadNewQuestion();
-            }
-        }, 500);
-        $("#correctScore").text(data.score.correct);
-        $("#incorrectScore").text(data.score.incorrect);
-        updateChart(data.score.correct, data.score.incorrect);
-    });
-});
-
+            e.preventDefault();
+            $.post("/check_answer", $(this).serialize(), function(data) {
+                $("#result").text(data.result + " The correct answer is: " + data.correct_answer);
+                setTimeout(function() {
+                    var nextQuestion = confirm("Do you want to proceed to the next question?");
+                    if (nextQuestion) {
+                        loadNewQuestion();
+                    }
+                }, 500);
+                $("#correctScore").text(data.score.correct);
+                $("#incorrectScore").text(data.score.incorrect);
+                updateChart(data.score.by_area); // Usar puntajes por área para actualizar la gráfica
+            });
+        });
 
         $(document).on('click', '#resetScore', function() {
             $.get("/reset_score", { _ : new Date().getTime() }, function(data) {
                 $("#correctScore").text(data.correct);
                 $("#incorrectScore").text(data.incorrect);
-                updateChart(data.correct, data.incorrect);
+
+                // Initialize the scores by area with zeros after resetting
+                var resetScoresByArea = {};
+                for (let area in data.by_area) {
+                    resetScoresByArea[area] = {'correct': 0, 'incorrect': 0};
+                }
+
+                updateChart(resetScoresByArea); // Update the chart with the reset scores by area
             });
         });
 
