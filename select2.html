@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo Select2 Múltiple</title>
+    
+    <!-- Estilos de Select2 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+    <!-- jQuery (necesario para que Select2 funcione) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Script de Select2 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+</head>
+<body>
+    
+<!-- Selector múltiple -->
+<select id="mySelect2" multiple="multiple" style="width: 200px;">
+  <option value="1">Opción 1</option>
+  <option value="2">Opción 2</option>
+  <option value="3">Opción 3</option>
+  <option value="4">Opción 4</option>
+</select>
+
+<!-- Script para inicializar Select2 -->
+<script>
+$(document).ready(function() {
+    $('#mySelect2').select2();
+});
+</script>
+
+</body>
+</html>
